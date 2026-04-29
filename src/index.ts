@@ -46,7 +46,16 @@ export const createFileTransport = (
     mkdir: true,
   });
 
-  const flush = () => { boom.flushSync(); boom.destroy(); };
+  // Guard against double-flush: SIGINT calls flush() then process.exit(0),
+  // which re-triggers the "exit" event — flushSync on an already-destroyed
+  // SonicBoom throws. The closed flag makes flush() a safe no-op after first call.
+  let closed = false;
+  const flush = () => {
+    if (closed) return;
+    closed = true;
+    try { boom.flushSync(); } catch { /* already destroyed */ }
+    try { boom.destroy(); } catch { /* already destroyed */ }
+  };
   process.once("exit",   flush);
   process.once("SIGINT",  () => { flush(); process.exit(0); });
   process.once("SIGTERM", () => { flush(); process.exit(0); });

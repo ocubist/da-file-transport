@@ -14,14 +14,14 @@ npm install @ocubist/da-file-transport
 
 ## Usage
 
-Pass the result of `createFileTransport` as a callback to `useLogger`:
+Pass the result of `createFileTransport` as a transport to `useLogger`:
 
 ```typescript
 import { useLogger } from "@ocubist/diagnostics-alchemy";
 import { createFileTransport } from "@ocubist/da-file-transport";
 
 const log = useLogger({
-  callbackFunctions: [
+  transports: [
     createFileTransport({ path: "logs/app.log" }),
   ],
 });
@@ -32,13 +32,24 @@ log.info("Server started", { payload: { port: 3000 } });
 
 ### Combine with stdout
 
-The main logger writes to stdout by default. The file transport runs alongside it as a callback — both fire on every log entry:
+The console transport is included by default. The file transport runs alongside it — both fire on every log entry:
 
 ```typescript
 const log = useLogger({
   where: "api",
-  callbackFunctions: [
+  transports: [
     createFileTransport({ path: "logs/api.log" }),
+  ],
+});
+```
+
+### File only (no console output)
+
+```typescript
+const log = useLogger({
+  console: false,
+  transports: [
+    createFileTransport({ path: "logs/app.log" }),
   ],
 });
 ```
@@ -47,7 +58,7 @@ const log = useLogger({
 
 ```typescript
 const log = useLogger({
-  callbackFunctions: [
+  transports: [
     createFileTransport({ path: "logs/app.log" }),
     createFileTransport({ path: "logs/errors.log" }), // receives all levels
   ],
@@ -81,4 +92,4 @@ createFileTransport(options: FileTransportOptions): (entry: LogEntry) => void
 ## Requirements
 
 - Node.js ≥ 20
-- `@ocubist/diagnostics-alchemy` ≥ 0.1.0 (peer dependency)
+- `@ocubist/diagnostics-alchemy` ≥ 0.2.0 (peer dependency)

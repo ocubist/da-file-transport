@@ -35,26 +35,40 @@ afterEach(() => {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("createFileTransport — basic", () => {
-  it("returns a function", () => {
-    const path = tmpFile("returns-fn");
+  it("returns a Transport object with write and minLevel", () => {
+    const path = tmpFile("returns-transport");
     created.push(path);
-    const cb = createFileTransport({ path, sync: true });
-    expect(typeof cb).toBe("function");
+    const t = createFileTransport({ path, sync: true });
+    expect(typeof t.write).toBe("function");
+    expect(t.minLevel).toBe("info");
+  });
+
+  it("defaults minLevel to info", () => {
+    const path = tmpFile("default-minlevel");
+    created.push(path);
+    const t = createFileTransport({ path, sync: true });
+    expect(t.minLevel).toBe("info");
+  });
+
+  it("respects custom minLevel", () => {
+    const path = tmpFile("custom-minlevel");
+    created.push(path);
+    const t = createFileTransport({ path, sync: true, minLevel: "warn" });
+    expect(t.minLevel).toBe("warn");
   });
 
   it("creates the log file on initialisation", () => {
     const path = tmpFile("creates-file");
     created.push(path);
     createFileTransport({ path, sync: true });
-    // SonicBoom opens the fd immediately — file exists after createFileTransport returns
     expect(existsSync(path)).toBe(true);
   });
 
   it("writes a valid JSON line per entry", () => {
     const path = tmpFile("valid-json");
     created.push(path);
-    const cb = createFileTransport({ path, sync: true });
-    cb(makeEntry({ message: "hello" }));
+    const t = createFileTransport({ path, sync: true });
+    t.write(makeEntry({ message: "hello" }));
     const [line] = readLines(path);
     expect(line).toBeDefined();
     expect(line!.message).toBe("hello");
@@ -65,10 +79,10 @@ describe("createFileTransport — basic", () => {
   it("writes multiple entries as separate lines", () => {
     const path = tmpFile("multi-entries");
     created.push(path);
-    const cb = createFileTransport({ path, sync: true });
-    cb(makeEntry({ message: "first" }));
-    cb(makeEntry({ message: "second" }));
-    cb(makeEntry({ message: "third" }));
+    const t = createFileTransport({ path, sync: true });
+    t.write(makeEntry({ message: "first" }));
+    t.write(makeEntry({ message: "second" }));
+    t.write(makeEntry({ message: "third" }));
     const lines = readLines(path);
     expect(lines).toHaveLength(3);
     expect(lines.map((l) => l.message)).toEqual(["first", "second", "third"]);
@@ -77,8 +91,8 @@ describe("createFileTransport — basic", () => {
   it("preserves all LogEntry fields", () => {
     const path = tmpFile("all-fields");
     created.push(path);
-    const cb = createFileTransport({ path, sync: true });
-    cb(makeEntry({
+    const t = createFileTransport({ path, sync: true });
+    t.write(makeEntry({
       level: "warn",
       where: "app.auth",
       why: "session",
@@ -94,9 +108,9 @@ describe("createFileTransport — basic", () => {
   it("all five log levels are written correctly", () => {
     const path = tmpFile("all-levels");
     created.push(path);
-    const cb = createFileTransport({ path, sync: true });
+    const t = createFileTransport({ path, sync: true });
     for (const level of ["debug", "info", "warn", "error", "fatal"] as const) {
-      cb(makeEntry({ level }));
+      t.write(makeEntry({ level }));
     }
     const lines = readLines(path);
     expect(lines.map((l) => l.level)).toEqual(["debug", "info", "warn", "error", "fatal"]);
@@ -105,9 +119,8 @@ describe("createFileTransport — basic", () => {
   it("creates parent directories automatically", () => {
     const path = tmpFile("nested/deep/app.log");
     created.push(path);
-    // mkdir: true in SonicBoom should handle this
-    const cb = createFileTransport({ path, sync: true });
-    cb(makeEntry());
+    const t = createFileTransport({ path, sync: true });
+    t.write(makeEntry());
     expect(existsSync(path)).toBe(true);
   });
 });

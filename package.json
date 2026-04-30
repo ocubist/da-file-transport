@@ -1,6 +1,6 @@
 {
   "name": "@ocubist/da-file-transport",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "File transport plugin for @ocubist/diagnostics-alchemy. Node.js only — writes newline-delimited JSON log entries to disk via SonicBoom.",
   "exports": {
@@ -35,13 +35,13 @@
     "node": ">=20"
   },
   "peerDependencies": {
-    "@ocubist/diagnostics-alchemy": ">=0.1.0"
+    "@ocubist/diagnostics-alchemy": ">=0.3.0"
   },
   "dependencies": {
     "sonic-boom": "^4.0.1"
   },
   "devDependencies": {
-    "@ocubist/diagnostics-alchemy": "^0.1.3",
+    "@ocubist/diagnostics-alchemy": "^0.3.0",
     "@types/node": "^22.0.0",
     "tsup": "^8.2.4",
     "typescript": "^5.5.4",

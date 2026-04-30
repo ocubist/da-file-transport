@@ -1,5 +1,5 @@
 import SonicBoom from "sonic-boom";
-import type { LogEntry } from "@ocubist/diagnostics-alchemy";
+import type { LogEntry, LogLevel, Transport } from "@ocubist/diagnostics-alchemy";
 
 /**
  * Options for `createFileTransport`.
@@ -7,15 +7,22 @@ import type { LogEntry } from "@ocubist/diagnostics-alchemy";
 export interface FileTransportOptions {
   /** Absolute or relative path to the log file. Parent directories are created automatically. */
   path: string;
+
   /**
    * Write synchronously on every entry. Safer under sudden process termination,
    * but slower under high log volume. Default: `false`.
    */
   sync?: boolean;
+
+  /**
+   * Minimum log level this transport will write.
+   * Entries below this level are skipped. Default: `"info"`.
+   */
+  minLevel?: LogLevel;
 }
 
 /**
- * Creates a file-transport callback for use with `useLogger`'s `callbackFunctions`.
+ * Creates a file transport for use with `useLogger`'s `transports` option.
  *
  * Writes newline-delimited JSON (`LogEntry` objects) to the given file path
  * using SonicBoom — buffered async writes with a safe synchronous flush on exit.
@@ -27,12 +34,10 @@ export interface FileTransportOptions {
  * import { createFileTransport } from "@ocubist/da-file-transport";
  *
  * const log = useLogger({
- *   callbackFunctions: [createFileTransport({ path: "logs/app.log" })],
+ *   transports: [createFileTransport({ path: "logs/app.log" })],
  * });
  */
-export const createFileTransport = (
-  options: FileTransportOptions
-): ((entry: LogEntry) => void) => {
+export const createFileTransport = (options: FileTransportOptions): Transport => {
   if ((globalThis as Record<string, unknown>)["window"] !== undefined) {
     throw new Error(
       "@ocubist/da-file-transport: createFileTransport() is Node.js-only. " +
@@ -60,7 +65,10 @@ export const createFileTransport = (
   process.once("SIGINT",  () => { flush(); process.exit(0); });
   process.once("SIGTERM", () => { flush(); process.exit(0); });
 
-  return (entry: LogEntry): void => {
-    boom.write(JSON.stringify(entry) + "\n");
+  return {
+    write: (entry: LogEntry): void => {
+      boom.write(JSON.stringify(entry) + "\n");
+    },
+    minLevel: options.minLevel ?? "info",
   };
 };

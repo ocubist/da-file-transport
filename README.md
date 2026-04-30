@@ -30,15 +30,19 @@ log.info("Server started", { payload: { port: 3000 } });
 // → logs/app.log receives: {"level":"info","time":1234567890,"message":"Server started","payload":{"port":3000}}
 ```
 
-### Combine with stdout
+### Combine with console output
 
-The console transport is included by default. The file transport runs alongside it — both fire on every log entry:
+The console transport is included by default. The file transport runs alongside it — each manages its own `minLevel` independently:
 
 ```typescript
 const log = useLogger({
   where: "api",
+  console: { minLevel: "debug" },       // see everything in the terminal
   transports: [
-    createFileTransport({ path: "logs/api.log" }),
+    createFileTransport({
+      path: "logs/api.log",
+      minLevel: "info",                  // only info and above go to file
+    }),
   ],
 });
 ```
@@ -47,7 +51,7 @@ const log = useLogger({
 
 ```typescript
 const log = useLogger({
-  console: false,
+  console: { enableTransport: false },
   transports: [
     createFileTransport({ path: "logs/app.log" }),
   ],
@@ -59,8 +63,8 @@ const log = useLogger({
 ```typescript
 const log = useLogger({
   transports: [
-    createFileTransport({ path: "logs/app.log" }),
-    createFileTransport({ path: "logs/errors.log" }), // receives all levels
+    createFileTransport({ path: "logs/app.log",    minLevel: "info"  }),
+    createFileTransport({ path: "logs/errors.log", minLevel: "error" }),
   ],
 });
 ```
@@ -70,13 +74,23 @@ const log = useLogger({
 ## Options
 
 ```typescript
-createFileTransport(options: FileTransportOptions): (entry: LogEntry) => void
+createFileTransport(options: FileTransportOptions): Transport
 ```
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `path` | `string` | — | File path to write to. Parent directories are created automatically. |
 | `sync` | `boolean` | `false` | Write synchronously on every entry. Safer under sudden process termination, slower under high log volume. |
+| `minLevel` | `LogLevel` | `"info"` | Minimum log level to write. Entries below this level are skipped. |
+
+The returned `Transport` object satisfies the `Transport` interface from `@ocubist/diagnostics-alchemy`:
+
+```typescript
+interface Transport {
+  write(entry: LogEntry): void;
+  minLevel?: LogLevel;
+}
+```
 
 ---
 
@@ -92,4 +106,4 @@ createFileTransport(options: FileTransportOptions): (entry: LogEntry) => void
 ## Requirements
 
 - Node.js ≥ 20
-- `@ocubist/diagnostics-alchemy` ≥ 0.2.0 (peer dependency)
+- `@ocubist/diagnostics-alchemy` ≥ 0.3.0 (peer dependency)
